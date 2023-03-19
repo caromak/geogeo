@@ -3,12 +3,10 @@ pipeline {
     tools{
         maven 'M2_HOME'
     }
-     environment {
-    registry = '727187669345.dkr.ecr.us-east-1.amazonaws.com/geolocation_ecr_rep'
-    registryCredential = 'jenkins-ecr'
-    dockerimage = ''
+    environment {
+        registry = '727187669345.dkr.ecr.us-east-1.amazonaws.com/geolocation_ecr_rep'
+        dockerimage = '' 
     }
-
     stages {
         stage('Checkout'){
             steps{
@@ -25,11 +23,11 @@ pipeline {
                 sh 'mvn test'
             }
         }
-  // Building Docker images
+        // Building Docker images
         stage('Building image') {
             steps{
                 script {
-                    dockerImage = docker.build registry + ":$BUILD_NUMBER"
+                    dockerImage = docker.build registry
                 }
             }
         }
@@ -40,16 +38,15 @@ pipeline {
                     sh 'aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 727187669345.dkr.ecr.us-east-1.amazonaws.com'
                     sh 'docker push 727187669345.dkr.ecr.us-east-1.amazonaws.com/geolocation_ecr_rep:6'
                 }
+            }
+        }
         //deploy the image that is in ECR to our EKS cluster
-        stage ('Kube Deploy') {
+        stage ("Kube Deploy") {
             steps {
                 withKubeConfig(caCertificate: '', clusterName: '', contextName: '', credentialsId: 'eks_credential', namespace: '', serverUrl: '') {
                  sh "kubectl apply -f eks-deploy-from-ecr.yaml"
                 }
             }
         }
-            }
-        }
-
     }
 }
